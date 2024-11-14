@@ -21,41 +21,31 @@ class ProductController extends Controller
         $category = $request->query('category');
         $priceLessThan = $request->query('priceLessThan');
 
-        // Build the base query
-        $query = Product::query();
 
-        // Apply category filter if it exists
-        if ($category) {
-            $query->where('category', $category);
-        }
+        $products = Product::category($category)
+            ->priceLessThan($priceLessThan)
+            ->limit(5)
+            ->get();
 
-        // Apply price filter before discounts if it exists
-        if ($priceLessThan !== null) {
-            $query->where('price', '<=', (int) $priceLessThan);
-        }
 
-        // Limit to 5 products
-        $products = $query->limit(5)->get();
-
-        // Apply discounts using the service
+        // Map & transform the products
         $products = $products->map(function ($product) {
-            $productArray = $product->toArray();
-            $maxDiscount = $this->discountService->calculateMaxDiscount($productArray);
+            $maxDiscount = $product->calculateMaxDiscount();
 
             if ($maxDiscount !== null) {
-                $original = $productArray['price'];
-                $final = $this->discountService->applyDiscount($original, $maxDiscount);
+                $original = $product->price;
+                $final = $product->applyDiscount($maxDiscount);
                 $discountPercentage = "{$maxDiscount}%";
             } else {
-                $original = $productArray['price'];
+                $original = $product->price;
                 $final = $original;
                 $discountPercentage = null;
             }
 
             return [
-                'sku' => $productArray['sku'],
-                'name' => $productArray['name'],
-                'category' => $productArray['category'],
+                'sku' => $product->sku,
+                'name' => $product->name,
+                'category' => $product->category,
                 'price' => [
                     'original' => $original,
                     'final' => $final,
@@ -65,7 +55,6 @@ class ProductController extends Controller
             ];
         });
 
-        // Return the response in JSON format
         return response()->json(['products' => $products]);
     }
 }
