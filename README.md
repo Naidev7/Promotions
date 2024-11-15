@@ -1,4 +1,3 @@
-# MyTheresa Promotions Test
 ## Overview
 This is a small Laravel API application that provides a /products endpoint to retrieve a list of products, with the ability to filter by category and price, and with discounts applied according to certain rules.
 
